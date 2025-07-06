@@ -1,17 +1,16 @@
-import 'dotenv/config'
+import "dotenv/config";
 
-import express from 'express';
-import configViewEngine from './config/configEngine';
-import { initWebRouter } from './routes/web';
-import { cronJobGame1p } from './controllers/cronJobContronler';
-import path from 'path';
-import { sendMessageAdmin } from './controllers/socketIoController';
-require('dotenv').config();
-let cookieParser = require('cookie-parser');
+import express from "express";
+import configViewEngine from "./config/configEngine";
+import { initWebRouter } from "./routes/web";
+import { cronJobGame1p } from "./controllers/cronJobContronler";
+import { sendMessageAdmin } from "./controllers/socketIoController";
+require("dotenv").config();
+let cookieParser = require("cookie-parser");
 
 const app = express();
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
 
 const port = process.env.PORT || 7000;
 
@@ -25,19 +24,19 @@ configViewEngine(app);
 // // init Web Routes
 initWebRouter(app);
 
-// // Cron game 1 Phut 
+// // Cron game 1 Phut
 cronJobGame1p(io);
 
-// // Check xem ai connect vào sever 
+// // Check xem ai connect vào sever
 sendMessageAdmin(io);
 
 // app.all('*', (req, res) => {
-//     return res.render("404.ejs"); 
+//     return res.render("404.ejs");
 // });
 // app.get('/',(req, res)=>{
 //     res.send('hellow or')
 // })
-app.set('view engine', 'ejs');
+app.set("view engine", "ejs");
 
 // Set the views directory to src/views
 // app.set('views', path.join(__dirname, '../src/views')); // Adjust path as necessary
@@ -49,8 +48,6 @@ app.set('view engine', 'ejs');
 //     res.status(404).render('home'); // This will now look for src/views/404.ejs
 // });
 
-
 server.listen(port, () => {
-    console.log("Connected success port: " + port);
+  console.log("Connected success port: " + port);
 });
-
