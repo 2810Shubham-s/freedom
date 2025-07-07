@@ -159,26 +159,63 @@ const totalJoin = async (req, res) => {
     if (typeid == '3') game = 'wingo5';
     if (typeid == '4') game = 'wingo10';
 
-    const [rows] = await connection.query('SELECT * FROM users WHERE `token` = ? ', [auth]);
+    try {
+        const [rows] = await connection.query('SELECT * FROM users WHERE `token` = ? ', [auth]);
 
-    if (rows.length > 0) {
-        const [wingoall] = await connection.query(`SELECT * FROM minutes_1 WHERE game = "${game}" AND status = 0 AND level = 0 ORDER BY id ASC `, [auth]);
-        const [winGo1] = await connection.execute(`SELECT * FROM wingo WHERE status = 0 AND game = '${game}' ORDER BY id DESC LIMIT 1 `, []);
-        const [winGo10] = await connection.execute(`SELECT * FROM wingo WHERE status != 0 AND game = '${game}' ORDER BY id DESC LIMIT 10 `, []);
-        const [setting] = await connection.execute(`SELECT * FROM admin `, []);
+        if (rows.length > 0) {
+            let wingoall = [];
+            let winGo1 = [];
+            let winGo10 = [];
+            let setting = [];
 
+            try {
+                const [wingoallResult] = await connection.query(`SELECT * FROM minutes_1 WHERE game = "${game}" AND status = 0 AND level = 0 ORDER BY id ASC `, [auth]);
+                wingoall = wingoallResult;
+            } catch (error) {
+                console.log('minutes_1 table query failed:', error.message);
+            }
+
+            try {
+                const [winGo1Result] = await connection.execute(`SELECT * FROM wingo WHERE status = 0 AND game = '${game}' ORDER BY id DESC LIMIT 1 `, []);
+                winGo1 = winGo1Result;
+            } catch (error) {
+                console.log('wingo table query failed:', error.message);
+            }
+
+            try {
+                const [winGo10Result] = await connection.execute(`SELECT * FROM wingo WHERE status != 0 AND game = '${game}' ORDER BY id DESC LIMIT 10 `, []);
+                winGo10 = winGo10Result;
+            } catch (error) {
+                console.log('wingo table query failed:', error.message);
+            }
+
+            try {
+                const [settingResult] = await connection.execute(`SELECT * FROM admin `, []);
+                setting = settingResult;
+            } catch (error) {
+                console.log('admin table query failed:', error.message);
+            }
+
+            return res.status(200).json({
+                message: 'Success',
+                status: true,
+                datas: wingoall,
+                lotterys: winGo1,
+                list_orders: winGo10,
+                setting: setting,
+                timeStamp: timeNow,
+            });
+        } else {
+            return res.status(200).json({
+                message: 'Failed',
+                status: false,
+                timeStamp: timeNow,
+            });
+        }
+    } catch (error) {
+        console.error('Error in totalJoin:', error);
         return res.status(200).json({
-            message: 'Success',
-            status: true,
-            datas: wingoall,
-            lotterys: winGo1,
-            list_orders: winGo10,
-            setting: setting,
-            timeStamp: timeNow,
-        });
-    } else {
-        return res.status(200).json({
-            message: 'Failed',
+            message: 'Database error',
             status: false,
             timeStamp: timeNow,
         });
@@ -281,34 +318,92 @@ function timerJoin2(params = '', addHours = 0) {
 }
 
 const statistical2 = async (req, res) => {
-    const [wingo] = await connection.query(`SELECT SUM(money) as total FROM minutes_1 WHERE status = 1 `);
-    const [wingo2] = await connection.query(`SELECT SUM(money) as total FROM minutes_1 WHERE status = 2 `);
-    const [users] = await connection.query(`SELECT COUNT(id) as total FROM users WHERE status = 1 `);
-    const [users2] = await connection.query(`SELECT COUNT(id) as total FROM users WHERE status = 0 `);
-    const [recharge] = await connection.query(`SELECT SUM(money) as total FROM recharge WHERE status = 1 `);
-    const [withdraw] = await connection.query(`SELECT SUM(money) as total FROM withdraw WHERE status = 1 `);
+    try {
+        let win = 0, loss = 0, usersOnline = 0, usersOffline = 0, recharges = 0, withdraws = 0, rechargeToday = 0, withdrawToday = 0;
 
-    const [recharge_today] = await connection.query(`SELECT SUM(money) as total FROM recharge WHERE status = 1 AND today = ?`, [timerJoin2()]);
-    const [withdraw_today] = await connection.query(`SELECT SUM(money) as total FROM withdraw WHERE status = 1 AND today = ?`, [timerJoin2()]);
+        try {
+            const [wingo] = await connection.query(`SELECT SUM(money) as total FROM minutes_1 WHERE status = 1 `);
+            win = wingo[0].total || 0;
+        } catch (error) {
+            console.log('minutes_1 table query failed:', error.message);
+        }
 
-    let win = wingo[0].total;
-    let loss = wingo2[0].total;
-    let usersOnline = users[0].total;
-    let usersOffline = users2[0].total;
-    let recharges = recharge[0].total;
-    let withdraws = withdraw[0].total;
-    return res.status(200).json({
-        message: 'Success',
-        status: true,
-        win: win,
-        loss: loss,
-        usersOnline: usersOnline,
-        usersOffline: usersOffline,
-        recharges: recharges,
-        withdraws: withdraws,
-        rechargeToday: recharge_today[0].total,
-        withdrawToday: withdraw_today[0].total,
-    });
+        try {
+            const [wingo2] = await connection.query(`SELECT SUM(money) as total FROM minutes_1 WHERE status = 2 `);
+            loss = wingo2[0].total || 0;
+        } catch (error) {
+            console.log('minutes_1 table query failed:', error.message);
+        }
+
+        try {
+            const [users] = await connection.query(`SELECT COUNT(id) as total FROM users WHERE status = 1 `);
+            usersOnline = users[0].total || 0;
+        } catch (error) {
+            console.log('users table query failed:', error.message);
+        }
+
+        try {
+            const [users2] = await connection.query(`SELECT COUNT(id) as total FROM users WHERE status = 0 `);
+            usersOffline = users2[0].total || 0;
+        } catch (error) {
+            console.log('users table query failed:', error.message);
+        }
+
+        try {
+            const [recharge] = await connection.query(`SELECT SUM(money) as total FROM recharge WHERE status = 1 `);
+            recharges = recharge[0].total || 0;
+        } catch (error) {
+            console.log('recharge table query failed:', error.message);
+        }
+
+        try {
+            const [withdraw] = await connection.query(`SELECT SUM(money) as total FROM withdraw WHERE status = 1 `);
+            withdraws = withdraw[0].total || 0;
+        } catch (error) {
+            console.log('withdraw table query failed:', error.message);
+        }
+
+        try {
+            const [recharge_today] = await connection.query(`SELECT SUM(money) as total FROM recharge WHERE status = 1 AND today = ?`, [timerJoin2()]);
+            rechargeToday = recharge_today[0].total || 0;
+        } catch (error) {
+            console.log('recharge table query failed:', error.message);
+        }
+
+        try {
+            const [withdraw_today] = await connection.query(`SELECT SUM(money) as total FROM withdraw WHERE status = 1 AND today = ?`, [timerJoin2()]);
+            withdrawToday = withdraw_today[0].total || 0;
+        } catch (error) {
+            console.log('withdraw table query failed:', error.message);
+        }
+
+        return res.status(200).json({
+            message: 'Success',
+            status: true,
+            win: win,
+            loss: loss,
+            usersOnline: usersOnline,
+            usersOffline: usersOffline,
+            recharges: recharges,
+            withdraws: withdraws,
+            rechargeToday: rechargeToday,
+            withdrawToday: withdrawToday,
+        });
+    } catch (error) {
+        console.error('Error in statistical2:', error);
+        return res.status(200).json({
+            message: 'Database error',
+            status: false,
+            win: 0,
+            loss: 0,
+            usersOnline: 0,
+            usersOffline: 0,
+            recharges: 0,
+            withdraws: 0,
+            rechargeToday: 0,
+            withdrawToday: 0,
+        });
+    }
 }
 
 const changeAdmin = async (req, res) => {
