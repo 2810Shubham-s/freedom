@@ -7,10 +7,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "database": "vite-node src/modal/CreateDatabase.js",
+    "create-admin": "vite-node create_admin_table.js",
+    "db:seed": "vite-node importDatabase.js",
     "start": "nodemon --exec babel-node  src/server.js",
     "dev": " vite-node src/server.js",
-    "develop": "vite-node src/server.js",
-    "db:seed": "vite-node importDatabase.js"
+    "develop": "vite-node src/server.js"
   },
   "author": "",
   "license": "ISC",
